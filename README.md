@@ -5,9 +5,8 @@
 
 * 1.数学笔记
 
-  [线性代数](./docs/math/线性代数.md)
+  [目录](./docs/math/catalogue.md)
   
-  [多元函数的微积分](./docs/math/多元函数的微积分.md)
 
 * 2.工作技术类笔记
 
