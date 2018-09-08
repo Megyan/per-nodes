@@ -4,7 +4,7 @@
 每个feature method又被划分为不同的block，不同的block处于测试执行的不同阶段，
 在测试运行时，各个block按照不同的顺序和规则被执行，如下图
 
-![不同执行block的关系](../img/Blocks2Phases.png)
+![不同执行block的关系](../../img/Blocks2Phases.png)
 
 **setup / given**
 

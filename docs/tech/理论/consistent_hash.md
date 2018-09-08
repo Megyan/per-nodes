@@ -13,7 +13,7 @@
 2.将node放在hash环上
 3.为data选择node，比如顺时针选择最近的node
 ```
-![hash](./img/data-node.png)
+![hash](../img/data-node.png)
 
 思考：
 一致性哈希实际上给的data和node在hash环相对位置。

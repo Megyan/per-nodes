@@ -37,7 +37,7 @@ MyISAM 存储引擎对两种索引的存储没有区别，InnoDb 存储引擎的
 ## 简单SQL的加锁分析
 
 首先创建这样的表：
-![table](./img/sql-lock.png)
+![table](../img/sql-lock.png)
 
 准备SQL：
 ```

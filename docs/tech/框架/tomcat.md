@@ -1,7 +1,7 @@
 ##tomcat 容器结构
 
 结构图
-![tomcat](./img/tomcat.jpg)
+![tomcat](../img/tomcat.jpg)
 Server可以有多个Service
 Service主要包含两个部分：Connector和Container
 
@@ -26,7 +26,7 @@ Service主要包含两个部分：Connector和Container
 如同时提供Http和Https链接
 
 配置文件的图
-![config](./img/config.jpg)
+![config](../img/config.jpg)
 
 ##Connector
 Connector最底层使用的是Socket来进行连接的，Request和Response是按照HTTP协议来封装的，所以Connector同时需要实现TCP/IP协议和HTTP协议
@@ -36,14 +36,14 @@ Connector最底层使用的是Socket来进行连接的，Request和Response是�
 3.封装完成之后的Requst和Response如何交给Container进行处理的？
 4.Container处理完之后如何交给Connector并返回客户端的？
 
-![Connector的结构图](./img/conector.jpeg)
+![Connector的结构图](../img/conector.jpeg)
 
 ##Container
 
-![container的结构图](./img/container.jpg)
+![container的结构图](../img/container.jpg)
 
 下面找一个Tomcat的文件目录对照一下，如下图所示：
-![tomcat-file的结构图](./img/tomcat-file.jpg)
+![tomcat-file的结构图](../img/tomcat-file.jpg)
 
 
 1.Engin:引擎，用来管理多个站点，一个Service最多只能有一个Engine
@@ -62,7 +62,7 @@ Pipeline-Valve是责任链模式，责任链模式是指在一个请求处理的
 StandardEngineValve、StandardHostValve、StandardContextValve、StandardWrapperValve
 
 处理过程图
-![pipe](./img/pipe-valve.jpg)
+![pipe](../img/pipe-valve.jpg)
 **请求处理的具体过程**
 
 ```
