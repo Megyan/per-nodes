@@ -7,7 +7,7 @@
 
 * 1.数学笔记
 
-  [目录](./docs/math/catalogue.md)
+  [目录](./docs/math)
   
 
 * 2.工作技术类笔记
