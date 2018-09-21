@@ -48,8 +48,7 @@ properties配置文件中的值来替换相应的BeanDefinition中占位符所�
 比，BeanFactoryPostProcessor处理bean的定义，而BeanPostProcessor则处理bean完成实例化后的
 对象
 ```
-
-![](./img/beanPostProcessor.jpg)
+![](./img/beanPostProcessor.png)
 
 BeanPostProcessor中的postProcessBeforeInitialization()方法与postProcessAfterInitialization()分别对应图中前置处理和后置处理两个步骤将执行的方法
 
@@ -189,17 +188,68 @@ public class HikariDataSourceConfiguration {
 
 `@EnableConfigurationProperties注解表示对@ConfigurationProperties的内嵌支持，默认会将对应Properties Class作为bean注入的IOC容器中，即在相应的Properties类上不用加@Component注解`
 
-## 事件监听
 
-## 类加载SpringFactoriesLoader
+## 配置文件的加载：SpringFactoriesLoader
+
+1.Spring利用jvm提供的类加载器，获取所有路径下的jar内的配置文件
+
+2.获取所有被@Configuration 标注的类，实例化后set对应的属性
+
 
 **JVM的类加载器**
 JVM提供了3种类加载器：BootstrapClassLoader、ExtClassLoader、AppClassLoader分别加载Java核心类库、扩展类库以及应用的类路径(CLASSPATH)下的类库。JVM通过双亲委派模型进行类的加载，我们也可以通过继承java.lang.classloader实现自己的类加载器
 
+类加载器除了可以加载类，还可以加载配置文件`ClassLoader.getResources(String name)`
 
+**双亲委托加载的盲点**
+Java 提供了很多服务提供者接口(Service Provider Interface，SPI)，允许第三方为这些接口提供实现。 SPI 的接口是 Java 核心库的一部分，是由BootstrapClassLoader加载的；SPI实现的Java类一般是由AppClassLoader来加载的。BootstrapClassLoader是无法找到 SPI 的实现类的，因为它只加载Java的核心库。
 
+线程上下文类加载器(ContextClassLoader)正好解决了这个问题。从名称上看，可能会误解为它是一种新的类加载器，实际上，它仅仅是Thread类的一个变量而已，可以通过setContextClassLoader(ClassLoader cl)和getContextClassLoader()来设置和获取该对象。如果不做任何的设置，Java应用的线程的上下文类加载器默认就是AppClassLoader。在核心类库使用SPI接口时，传递的类加载器使用线程上下文类加载器，就可以成功的加载到SPI实现的类。线程上下文类加载器在很多SPI的实现中都会用到
 
+## Spring容器的事件监听机制
+Java供了实现事件监听机制的两个基础类：自定义事件类型扩展自java.util.EventObject、事件的监听器扩展自java.util.EventListener.
+`Java 只是提供了两个接口,其本身并没有提供监听器的注册/移除等管理`
 
+SpringApplicationListener作为事件监听器接口定义，它继承自EventListener。ApplicationContext容器在启动时，会自动识别并加载EventListener类型的bean，一旦容器内有事件发布，将通知这些注册到容器的EventListener
+
+## 揭秘自动配置
+
+```java
+@SpringBootApplication
+public class MoonApplication {
+
+    public static void main(String[] args) {
+        SpringApplication.run(MoonApplication.class, args);
+    }
+}
+```
+
+* 1.@SpringBootApplication开启组件扫描和自动配置
+* 2.SpringApplication.run则负责启动引导应用程序
+
+**@SpringBootApplication**
+`@SpringBootApplication是一个复合Annotation，它将三个有用的注解组合在一起`
+
+**注解三剑客:**
+
+* @SpringBootConfiguration就是@Configuration，它是Spring框架的注解，标明该类是一个JavaConfig配置类。
+* @ComponentScan启用组件扫描
+* @EnableAutoConfiguration注解表示开启Spring Boot自动配置功能
+`Spring Boot会根据应用的依赖、自定义的bean、classpath下有没有某个类 等等因素来猜测你需要的
+bean，然后注册到IOC容器中`
+
+**@EnableAutoConfiguration的未卜先知**
+`SpringBoot 是如何实现自动配置?`
+@EnableAutoConfiguration中导入了EnableAutoConfigurationImportSelector类，而这个类的selectImports()通过SpringFactoriesLoader得到了大量的配置类，而每一个配置类则根据条件化配置来做出决策，以实现自动配置
+
+```
+1.先将常用的配置类加载进来,如果数据库配置 AOP的配置 MQ的配置等等
+2.每个配置类会根据classpath内有没有对应的Class来决定是否生效
+思想:我先准备一包零食,然后根据你描述的口味,挨个挑出来送给你.不用你自己挑了.
+```
+## SpringBoot应用启动
+
+Spring Boot的整个启动流程，其核心就是在Spring容器初始化并启动的基础上加入各种扩展点，这些扩展点包括：ApplicationContextInitializer、ApplicationListener以及各种BeanFactoryPostProcessor
 
 <https://www.jianshu.com/p/83693d3d0a65>
 
