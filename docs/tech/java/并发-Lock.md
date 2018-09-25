@@ -58,10 +58,158 @@ public interface Lock {
 
 
 ## AQS
+**什么是AQS 类名称的简称**
+`AbstractQueuedSynchronizer又称为队列同步器(后面简称AQS)`
 
+**AQS工作基本原理**
+
+
+1.如何判断共享资源是否需要锁定
+AQS通过一个int类型的成员变量state来控制同步状态,当state=0时，则说明没有任何线程占有共享资源的
+锁,当state=1时，则说明有线程目前正在使用共享变量
+
+2.等待和竞争队列
+AQS通过**内部类Node**构成FIFO的同步队列来完成线程获取锁的排队工作.
+通过利用**内部类ConditionObject**构建等待队列.
+`当Condition调用wait()方法后，线程将会加入等待队列中，而当Condition调用signal()方法后，线程将从等待队列转移动同步队列中进行锁竞争`
+
+3.同步队列模型
+
+```java
+/**
+ * AQS抽象类
+ */
+public abstract class AbstractQueuedSynchronizer
+    extends AbstractOwnableSynchronizer{
+//指向同步队列队头
+private transient volatile Node head;
+
+//指向同步的队尾
+private transient volatile Node tail;
+
+//同步状态，0代表锁未被占用，1代表锁已被占用
+private volatile int state;
+
+//省略其他代码......
+}
+
+```
+![](./img/同步队列.png)
+
+4.Node是什么?
+`Node结点是对每一个访问同步代码的线程的封装,其包含了需要同步的线程本身以及线程的状态`
+
+```java
+static final class Node {
+    //共享模式
+    static final Node SHARED = new Node();
+    //独占模式
+    static final Node EXCLUSIVE = null;
+
+    //标识线程已处于结束状态
+    static final int CANCELLED =  1;
+    //等待被唤醒状态
+    static final int SIGNAL    = -1;
+    //条件状态，
+    static final int CONDITION = -2;
+    //在共享模式中使用表示获得的同步状态会被传播
+    static final int PROPAGATE = -3;
+
+    //等待状态,存在CANCELLED、SIGNAL、CONDITION、PROPAGATE 4种
+    volatile int waitStatus;
+
+    //同步队列中前驱结点
+    volatile Node prev;
+
+    //同步队列中后继结点
+    volatile Node next;
+
+    //请求锁的线程
+    volatile Thread thread;
+
+    //等待队列中的后继结点，这个与Condition有关，稍后会分析
+    Node nextWaiter;
+
+    //判断是否为共享模式
+    final boolean isShared() {
+        return nextWaiter == SHARED;
+    }
+
+    //获取前驱结点......
+}
+
+```
+SHARED和EXCLUSIVE常量分别代表共享模式和独占模式
+
+```
+所谓共享模式是一个锁允许多条线程同时操作，如信号量Semaphore采用的就是基于AQS的共享模式实现的，而独占模式则是同一个时间段只能有一个线程对共享资源进行操作，多余的请求线程需要排队等待，如ReentranLock。
+```
+
+变量waitStatus则表示当前被封装成Node结点的等待状态，共有4种取值CANCELLED、SIGNAL、CONDITION、PROPAGATE
+
+```
+CANCELLED：值为1，在同步队列中等待的线程等待超时或被中断，需要从同步队列中取消该Node的结点，其结点的waitStatus为CANCELLED，即结束状态，进入该状态后的结点将不会再变化。
+
+SIGNAL：值为-1，被标识为该等待唤醒状态的后继结点，当其前继结点的线程释放了同步锁或被取消，将会通知该后继结点的线程执行。说白了，就是处于唤醒状态，只要前继结点释放锁，就会通知标识为SIGNAL状态的后继结点的线程执行。
+是否可以理解 SIGNAL状态的Node都是具备竞争资格的线程?还是整个同步队列都是有竞争资格的?
+前驱节点释放锁之后,如何裁定该是哪个后驱节点获得锁?
+
+CONDITION：值为-2，与Condition相关，该标识的结点处于等待队列中，结点的线程等待在Condition上，当其他线程调用了Condition的signal()方法后，CONDITION状态的结点将从等待队列转移到同步队列中，等待获取同步锁。
+
+PROPAGATE：值为-3，与共享模式相关，在共享模式中，该状态标识结点的线程处于可运行状态。
+
+0状态：值为0，代表初始化状态。
+```
+## ReetrantLock分析AQS独占模式实现过程
+## ReetrantLock独占锁
+
+1.获取锁时，首先对同步状态执行CAS操作，尝试把state的状态从0设置为1
+2.更改state失败,则执行执行 acquire(1)方法
+
+```
+acquire(1)
+一是尝试再次获取同步状态，如果获取成功则将当前线程设置为OwnerThread，否则失败，二是判断当前线程current是否为OwnerThread，如果是则属于重入锁，state自增1，并获取锁成功，
+```
+
+```java
+public final void acquire(int arg) {
+    //再次尝试获取同步状态
+    if (!tryAcquire(arg) &&
+        acquireQueued(addWaiter(Node.EXCLUSIVE), arg))
+        selfInterrupt();
+}
+```
+3.再次获取锁失败,线程就会被封装添加到同步队列内
+
+```
+如果一次加入队列失败,就会使用死循环重复操作,直到成功.
+之所以会失败,是因为存在多个线程同时加入队列的情况,而加入队列又是使用CAS.CAS就会存在失败的情况
+```
+
+4.添加到同步队列后，结点就会进入一个自旋过程，即每个结点都在观察时机待条件满足获取同步状态，然后从同步队列退出并结束自旋
+
+5.自旋过程:判断自己的前驱是否时head,如果是且设置state成功,则将自身设置为head.反之清除同步队列中的state=取消CANCEL的Node节点,同时挂起自身
+
+![](./img/lock过程.png)
+
+**公平锁到底在哪里公平?**
+非公平锁的nonfairTryAcquire(int acquires)方法去申请锁
+公平锁tryAcquire(int acquires) 方法去申请锁
+
+区别在于tryAcquire在设置state的时候,会判断同步队列是否存在结点，如果存在必须先执行完同步队列中结点的线程.而非公平锁呢，当线程请求到来时，不管同步队列是否存在线程结点，直接尝试获取同步状态，获取成功直接访问共享资源
+
+换个视角,也就是说,当没有新的线程加入竞争,那么非公平锁也是按照同步队列里的顺序(也就是申请锁的顺序)一个个去执行.
+
+锁的目的就是让线程一次执行一个.加入队列,也完成这个要求,每次只允许出队的线程去执行.
+所谓的锁竞争的本质就是针对state的CAS
+
+**synchronized和Lock**
+synchronized JVM可能会将锁抛给操作系统,从而导致线程用户态切换到内核态.
+Lock 只是构造了一个同步队列,来保证锁有序进行.其实所有线程没有锁的时候,都是执行了自旋.并没有释放.
 
 **参考**
 <https://blog.csdn.net/javazejian/article/details/75043422>
+<https://blog.csdn.net/SumResort_LChaowei/article/details/72857921>
 
 ```
 笔记不是单纯重复 复制黏贴,而是理解消化.变成自己的体系.
@@ -77,5 +225,4 @@ public interface Lock {
 想要有序,就涉及到锁.Lock或者synchronized.
 涉及到锁,就涉及性能问题,并发是就是为了提高效率而生,而锁又给这种高效添加了限制.所以各种锁优化(偏向锁/轻量锁/锁自旋/锁粗化/CAS)
 ```
-
 
