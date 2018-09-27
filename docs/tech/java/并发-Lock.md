@@ -160,6 +160,10 @@ PROPAGATE：值为-3，与共享模式相关，在共享模式中，该状态标
 
 0状态：值为0，代表初始化状态。
 ```
+
+ReentrantLock与AQS的关系
+![](./img/lock-aqs.png)
+
 ## ReetrantLock分析AQS独占模式实现过程
 ## ReetrantLock独占锁
 
@@ -186,9 +190,10 @@ public final void acquire(int arg) {
 之所以会失败,是因为存在多个线程同时加入队列的情况,而加入队列又是使用CAS.CAS就会存在失败的情况
 ```
 
-4.添加到同步队列后，结点就会进入一个自旋过程，即每个结点都在观察时机待条件满足获取同步状态，然后从同步队列退出并结束自旋
+4.添加到同步队列后，head的next结点就会进入一个自旋过程，即观察时机待条件满足获取同步状态，然后从同步队列退出并结束自旋
 
-5.自旋过程:判断自己的前驱是否时head,如果是且设置state成功,则将自身设置为head.反之清除同步队列中的state=取消CANCEL的Node节点,同时挂起自身
+5.自旋过程:判断自己的前驱是否时head,如果是且设置state成功,则将自身设置为head.
+  反之清除同步队列中位于自身前面的state=取消CANCEL的Node节点**(这就是shouldParkAfterFailedAcquire)**,同时挂起自身**parkAndCheckInterrupt**.
 
 ![](./img/lock过程.png)
 
@@ -206,6 +211,96 @@ public final void acquire(int arg) {
 **synchronized和Lock**
 synchronized JVM可能会将锁抛给操作系统,从而导致线程用户态切换到内核态.
 Lock 只是构造了一个同步队列,来保证锁有序进行.其实所有线程没有锁的时候,都是执行了自旋.并没有释放.
+
+关于Lock.lock
+```
+1.ReentrantLock.lock
+2.sync.lock()
+ 非公平或者公平锁实现了lock()
+3.NonfairSync.lock
+  CAS设置state 成功setExclusiveOwnerThread 失败acquire()
+4.acquire() 是AQS提供的方法 
+  a 干了3事儿:尝试获取锁tryAcquire()/将线程加入同步队列acquireQueued()&自旋,获取锁/挂起
+  b tryAcquire()是AQS的抽象方法,由Sync的子类NonfairSync负责具体实现
+  C tryAcquire()就是在此CAS state
+```
+
+`加入队列 前边所有的取消都删除 其他都置为等待。第一个自旋。`
+### 锁的释放
+
+```java
+//ReentrantLock类的unlock
+public void unlock() {
+    sync.release(1);
+}
+
+//AQS类的release()方法
+public final boolean release(int arg) {
+    //尝试释放锁
+    if (tryRelease(arg)) {
+
+        Node h = head;
+        if (h != null && h.waitStatus != 0)
+            //唤醒后继结点的线程
+            unparkSuccessor(h);
+        return true;
+    }
+    return false;
+}
+
+//ReentrantLock类中的内部类Sync实现的tryRelease(int releases) 
+protected final boolean tryRelease(int releases) {
+
+      int c = getState() - releases;
+      if (Thread.currentThread() != getExclusiveOwnerThread())
+          throw new IllegalMonitorStateException();
+      boolean free = false;
+      //判断状态是否为0，如果是则说明已释放同步状态
+      if (c == 0) {
+          free = true;
+          //设置Owner为null
+          setExclusiveOwnerThread(null);
+      }
+      //设置更新同步状态
+      setState(c);
+      return free;
+  }
+```
+
+```
+从代码执行操作来看，这里主要作用是用unpark()唤醒同步队列中最前边未放弃线程(也就是状态为CANCELLED的线程结点s)。此时，回忆前面分析进入自旋的函数acquireQueued()，s结点的线程被唤醒后，会进入acquireQueued()函数的if (p == head && tryAcquire(arg))的判断，如果p!=head也不会有影响，因为它会执行shouldParkAfterFailedAcquire()，由于s通过unparkSuccessor()操作后已是同步队列中最前边未放弃的线程结点，那么通过shouldParkAfterFailedAcquire()内部对结点状态的调整，s也必然会成为head的next结点，因此再次自旋时p==head就成立了，然后s把自己设置成head结点，表示自己已经获取到资源了，最终acquire()也返回了，这就是独占锁释放的过程。 
+```
+
+```
+取消关键步骤:
+1 设置state
+2 唤醒同步队列内最前边的线程 
+释放的本质就是将 AQS state设置为0
+将node节点的状态设置
+```
+
+所以问题:
+只有同步队列的第一个node才会自旋?其他的都会挂起.
+unsafe 这个类 需要了解
+`释放  唤醒第一个 让它自旋`
+## 神奇的Condition
+
+1.通过Condition能够精细的控制多线程的休眠与唤醒。
+
+2.对于一个锁，我们可以为多个线程间建立不同的Condition,也就是一个锁可以有多个等待队列
+
+ConditionObject
+
+等待队列是放弃执行资格的线程
+同步队列是参与竞争的线程.实际上也根本没有竞争.
+### await
+1.await 会调用release ,不会将node的waitState改成取消,会改成0
+2.await 当前线程如果不在同步队列内,挂起.
+3.await 如果在同步队列内,开始自旋努力获取到锁
+
+### signal
+1.从等待队列移除
+2.加入同步队列,如果前驱节点已经是取消了,唤醒自己开始获取锁
 
 **参考**
 <https://blog.csdn.net/javazejian/article/details/75043422>
