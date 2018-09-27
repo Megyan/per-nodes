@@ -58,6 +58,12 @@ Mark Word 被设计成为一个非固定的数据结构，以便存储更多有�
 **解锁**
 
 ```
+（1）通过CAS操作尝试把线程中复制的Displaced Mark Word对象替换当前的Mark Word。
+
+（2）如果替换成功，整个同步过程就完成了。
+
+（3）如果替换失败，说明有其他线程尝试过获取该锁（此时锁已膨胀），那就要在释放锁的同时，唤醒被挂起的线程。
+　　
 解锁其实就是将栈空间中的Displaced Mark Word,尝试还回去.
 还成功了,整个同步过程结束
 还失败了,就说明锁膨胀了,Mark Word中锁的标示为已经改为重锁
@@ -92,7 +98,10 @@ Q:所谓的对象头是 谁的对象头?是monitor的头还是包含竞争资源
 **解锁**
 
 ```
-偏向锁的撤销在上述第四步骤中有提到。偏向锁只有遇到其他线程尝试竞争偏向锁时，持有偏向锁的线程才会释放锁，线程不会主动去释放偏向锁。偏向锁的撤销，需要等待全局安全点（在这个时间点上没有字节码正在执行），它会首先暂停拥有偏向锁的线程，判断锁对象是否处于被锁定状态，撤销偏向锁后恢复到未锁定（标志位为“01”）或轻量级锁（标志位为“00”）的状态
+偏向锁的撤销在上述第四步骤中有提到。偏向锁只有遇到其他线程尝试竞争偏向锁时，持有偏向锁的线程才会释
+放锁，线程不会主动去释放偏向锁。偏向锁的撤销，需要等待全局安全点（在这个时间点上没有字节码正在执
+行），它会首先暂停拥有偏向锁的线程，判断锁对象是否处于被锁定状态，撤销偏向锁后恢复到未锁定（标志位
+为“01”）或轻量级锁（标志位为“00”）的状态
 ```
 
 三锁之间的转换
@@ -101,6 +110,34 @@ Q:所谓的对象头是 谁的对象头?是monitor的头还是包含竞争资源
 
 ### 重锁
 
+重量级锁也就是通常说synchronized的对象锁，锁标识位为10，其中Mark Word指针指向的是monitor对象.
+
+monitor的结构
+
+```c
+ObjectMonitor() {
+    _header       = NULL;
+    _count        = 0; //记录个数
+    _waiters      = 0,
+    _recursions   = 0;
+    _object       = NULL;
+    _owner        = NULL;
+    _WaitSet      = NULL; //处于wait状态的线程，会被加入到_WaitSet
+    _WaitSetLock  = 0 ;
+    _Responsible  = NULL ;
+    _succ         = NULL ;
+    _cxq          = NULL ;
+    FreeNext      = NULL ;
+    _EntryList    = NULL ; //处于等待锁block状态的线程，会被加入到该列表
+    _SpinFreq     = 0 ;
+    _SpinClock    = 0 ;
+    OwnerIsThread = 0 ;
+  }
+```
+
+ObjectMonitor中有两个队列，_WaitSet 和 _EntryList，用来保存ObjectWaiter对象列表( 每个等待锁的线程都会被封装成ObjectWaiter对象)，_owner指向持有ObjectMonitor对象的线程，当多个线程同时访问一段同步代码时，首先会进入 _EntryList 集合，当线程获取到对象的monitor 后进入 _Owner 区域并把monitor中的owner变量设置为当前线程同时monitor中的计数器count加1，若线程调用 wait() 方法，将释放当前持有的monitor，owner变量恢复为null，count自减1，同时该线程进入 WaitSe t集合中等待被唤醒
+
+![](./img/synch-lock.png)
 
 
 **参考**
