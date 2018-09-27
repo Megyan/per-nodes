@@ -175,7 +175,8 @@ Sync类及其子类来完成的
 ## ReetrantLock独占锁
 
 1.获取锁时，首先对同步状态执行CAS操作，尝试把state的状态从0设置为1
-2.更改state失败,则执行执行 acquire(1)方法
+
+2.更改state失败,则执行执行 **acquire(1)**方法
 
 ```
 acquire(1)
@@ -190,17 +191,50 @@ public final void acquire(int arg) {
         selfInterrupt();
 }
 ```
-3.再次获取锁失败,线程就会被封装添加到同步队列内
+3.再次获取锁失败,线程就会被封装添加到同步队列内 **enq(node)**
 
 ```
-如果一次加入队列失败,就会使用死循环重复操作,直到成功.
+如果一次加入队列失败,就会使用enq(node)死循环重复操作,直到成功.
 之所以会失败,是因为存在多个线程同时加入队列的情况,而加入队列又是使用CAS.CAS就会存在失败的情况
 ```
 
-4.添加到同步队列后，head的next结点就会进入一个自旋过程，即观察时机待条件满足获取同步状态，然后从同步队列退出并结束自旋
+4.添加到同步队列后，head的next结点就会进入一个自旋过程，即观察时机待条件满足获取同步状态，然后从同步队列退出并结束自旋 **acquireQueued(final Node node, int arg)**
+
+```java
+final boolean acquireQueued(final Node node, int arg) {
+    boolean failed = true;
+    try {
+        boolean interrupted = false;
+        //自旋，死循环
+        for (;;) {
+            //获取前驱结点
+            final Node p = node.predecessor();
+            当且仅当p为头结点才尝试获取同步状态
+            if (p == head && tryAcquire(arg)) {
+                //将node设置为头结点
+                setHead(node);
+                //清空原来头结点的引用便于GC
+                p.next = null; // help GC
+                failed = false;
+                return interrupted;
+            }
+            //如果前驱结点不是head，判断是否挂起线程
+            if (shouldParkAfterFailedAcquire(p, node) &&
+                parkAndCheckInterrupt())
+                interrupted = true;
+        }
+    } finally {
+        if (failed)
+            //最终都没能获取同步状态，结束该线程的请求
+            cancelAcquire(node);
+    }
+}
+```
 
 5.自旋过程:判断自己的前驱是否时head,如果是且设置state成功,则将自身设置为head.
-  反之清除同步队列中位于自身前面的state=取消CANCEL的Node节点**(这就是shouldParkAfterFailedAcquire)**,同时挂起自身**parkAndCheckInterrupt**.
+  反之清除同步队列中位于自身前面的state=取消CANCEL的Node节点,并将自身的前驱设置为SIGNAL状态，
+  等待被唤醒**(这就是shouldParkAfterFailedAcquire)**,同时挂起自身
+  **parkAndCheckInterrupt**.
 
 ![](./img/lock过程.png)
 
@@ -220,6 +254,7 @@ synchronized JVM可能会将锁抛给操作系统,从而导致线程用户态切
 Lock 只是构造了一个同步队列,来保证锁有序进行.其实所有线程没有锁的时候,都是执行了自旋.并没有释放.
 
 关于Lock.lock
+
 ```
 1.ReentrantLock.lock
 2.sync.lock()
@@ -280,16 +315,16 @@ protected final boolean tryRelease(int releases) {
 
 ```
 取消关键步骤:
-1 设置state
-2 唤醒同步队列内最前边的线程 
-释放的本质就是将 AQS state设置为0
-将node节点的状态设置
+1 设置AQS state
+2 设置自身Node state=0 初始化
+3 唤醒同步队列内最前边的线程 unparkSuccessor(h)
 ```
 
 所以问题:
 只有同步队列的第一个node才会自旋?其他的都会挂起.
 unsafe 这个类 需要了解
 `释放  唤醒第一个 让它自旋`
+
 ## 神奇的Condition
 
 1.通过Condition能够精细的控制多线程的休眠与唤醒。
