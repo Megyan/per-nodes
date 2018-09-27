@@ -164,6 +164,13 @@ PROPAGATE：值为-3，与共享模式相关，在共享模式中，该状态标
 ReentrantLock与AQS的关系
 ![](./img/lock-aqs.png)
 
+```
+ReentrantLock内部存在3个实现类，分别是Sync、NonfairSync、FairSync
+其中Sync继承自AQS实现了解锁tryRelease()方法，而NonfairSync(非公平锁)、 FairSync(公平锁)则
+继承自Sync，实现了获取锁的tryAcquire()方法，ReentrantLock的所有方法调用都通过间接调用AQS和
+Sync类及其子类来完成的
+```
+
 ## ReetrantLock分析AQS独占模式实现过程
 ## ReetrantLock独占锁
 
