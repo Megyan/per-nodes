@@ -21,7 +21,7 @@ BeanFactory则抽象出了bean的管理逻辑，而各个BeanFactory的实现类
 ```
 
 **三者的关系：**
-![](./img/factory.png)
+![](../img/factory.png)
 
 **Spring IoC容器的整个工作流程**
 
