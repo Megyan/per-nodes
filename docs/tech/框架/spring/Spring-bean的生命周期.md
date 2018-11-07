@@ -11,10 +11,10 @@
 7.基于JSR250规范的**@PostConstruct和@PreDestroy**
 8.BeanPostProcessor 后置处理器.在bean初始化前后做一些工作.(这就是勾子)
 
+
 ```java
 @Component
-public class Car {
-	
+public class Car {	
 	public Car(){
 		System.out.println("car constructor...");
 	}
@@ -26,16 +26,14 @@ public class Car {
 	public void detory(){
 		System.out.println("car ... detory...");
 	}
-
 }
-
 
 @ComponentScan("com.atguigu.bean")
 @Configuration
 public class MainConfigOfLifeCycle {
 	
-	//@Scope("prototype")
-	@Bean(initMethod="init",destroyMethod="detory")
+	//@Scope("prototype") //多实例
+	@Bean(initMetehod="init",destroyMethod="detory")
 	public Car car(){
 		return new Car();
 	}
@@ -43,73 +41,49 @@ public class MainConfigOfLifeCycle {
 }
 
 ```
+##  bean的生命周期
+ 
+bean创建---初始化----销毁的过程
 
+容器管理bean的生命周期；
+ 我们可以自定义初始化和销毁方法；
+ 容器在bean进行到当前生命周期的时候来调用我们自定义的初始化和销毁方法
+ 
+ 1.构造（对象创建）
+ 		单实例：在容器启动的时候创建对象
+ 		多实例：在每次获取的时候创建对象
+ 
+ 2.BeanPostProcessor.postProcessBeforeInitialization
+ 3.初始化：
+ 		对象创建完成，并赋值好，调用初始化方法。。。
+ 4.BeanPostProcessor.postProcessAfterInitialization
+ 5.销毁：
+ 		单实例：容器关闭的时候
+ 		多实例：容器不会管理这个bean；容器不会调用销毁方法；
 
 ```java
 /**
- * bean的生命周期：
- * 		bean创建---初始化----销毁的过程
- * 容器管理bean的生命周期；
- * 我们可以自定义初始化和销毁方法；容器在bean进行到当前生命周期的时候来调用我们自定义的初始化和销毁方法
- * 
- * 构造（对象创建）
- * 		单实例：在容器启动的时候创建对象
- * 		多实例：在每次获取的时候创建对象\
- * 
- * BeanPostProcessor.postProcessBeforeInitialization
- * 初始化：
- * 		对象创建完成，并赋值好，调用初始化方法。。。
- * BeanPostProcessor.postProcessAfterInitialization
- * 销毁：
- * 		单实例：容器关闭的时候
- * 		多实例：容器不会管理这个bean；容器不会调用销毁方法；
- * 
- * 
- * 遍历得到容器中所有的BeanPostProcessor；挨个执行beforeInitialization，
- * 一但返回null，跳出for循环，不会执行后面的BeanPostProcessor.postProcessorsBeforeInitialization
- * 
- * BeanPostProcessor原理
- * populateBean(beanName, mbd, instanceWrapper);给bean进行属性赋值
- * initializeBean
- * {
- * applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
- * invokeInitMethods(beanName, wrappedBean, mbd);执行自定义初始化
- * applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
- *}
- * 
- * 
- * 
- * 1）、指定初始化和销毁方法；
- * 		通过@Bean指定init-method和destroy-method；
- * 2）、通过让Bean实现InitializingBean（定义初始化逻辑），
- * 				DisposableBean（定义销毁逻辑）;
- * 3）、可以使用JSR250；
- * 		@PostConstruct：在bean创建完成并且属性赋值完成；来执行初始化方法
- * 		@PreDestroy：在容器销毁bean之前通知我们进行清理工作
- * 4）、BeanPostProcessor【interface】：bean的后置处理器；
- * 		在bean初始化前后进行一些处理工作；
- * 		postProcessBeforeInitialization:在初始化之前工作
- * 		postProcessAfterInitialization:在初始化之后工作
- * 
  * Spring底层对 BeanPostProcessor 的使用；
- * 		bean赋值，注入其他组件，@Autowired，生命周期注解功能，@Async,xxx BeanPostProcessor;
- * 
- * @author lfy
+ * bean赋值，注入其他组件，@Autowired，生命周期注解功能，@Async,xxx BeanPostProcessor;
  *
  */
-@ComponentScan("com.atguigu.bean")
-@Configuration
-public class MainConfigOfLifeCycle {
-	
-	//@Scope("prototype")
-	@Bean(initMethod="init",destroyMethod="detory")
-	public Car car(){
-		return new Car();
-	}
-
-}
 
 ```
+
+## 指定初始化和销毁方法
+1）、指定初始化和销毁方法；
+	通过@Bean指定init-method和destroy-method；
+2）、通过让Bean实现InitializingBean（定义初始化逻辑），
+			DisposableBean（定义销毁逻辑）;
+3）、可以使用JSR250；
+	@PostConstruct：在bean创建完成并且属性赋值完成；来执行初始化方法
+	@PreDestroy：在容器销毁bean之前通知我们进行清理工作
+4）、BeanPostProcessor【interface】：bean的后置处理器；
+	在bean初始化前后进行一些处理工作；
+	`init-method 或者实现InitializingBean @PostConstruct 都算是初始化`
+	
+postProcessBeforeInitialization:在初始化之前工作
+postProcessAfterInitialization:在初始化之后工作
 
 ## BeanPostProcessor的工作原理
 
@@ -127,9 +101,19 @@ ApplicationContext applicationContext = new AnnotationConfigApplicationContext(M
 6.pupulateBean() 为属性赋值
 
 7.instantiateBean() 
+这里就会执行前置/初始化/后置方法
 
-8.invokeInitMethods() 执行初始化方法
-
+```java
+instantiateBean(){
+  applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
+  invokeInitMethods(beanName, wrappedBean, mbd);执行自定义初始化
+  applyBeanPostProcessorsAfterInitialization(wrappedBean, beanName);
+ }
+```
+8.applyBeanPostProcessorsBeforeInitialization()
+ 遍历得到容器中所有的BeanPostProcessor；挨个执行beforeInitialization，
+ 一但返回null，跳出for循环，不会执行后面的BeanPostProcessor.postProcessorsBeforeInitialization
+ 
 ## 常见的BeanPostProcessor实现
 
 1.ApplicationContextAware 负责注入容器上下文 ApplicationContextAwareProcessor负责处理.
