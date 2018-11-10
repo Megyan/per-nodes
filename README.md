@@ -22,7 +22,9 @@
 ### Spring 源码阅读
 
  [Spring-组建注册](./docs/tech/spring/Spring-组建注册.md)
-  
+ [Spring-bean的生命周期](./docs/tech/spring/Spring-bean的生命周期.md)
+ [Spring-属性赋值](./docs/tech/spring/Spring-属性赋值.md)
+ [Spring-自动装配](./docs/tech/spring/Spring-自动装配.md)
 
 ## 3.Think
 
