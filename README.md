@@ -10,12 +10,12 @@
 
 `电梯直达..待完成~`
 
-## 1.Math
+## 1.MATH
 
-  [目录](./docs/math)
+  [全部内容](./docs/math)
   
 
-## 2.Tech
+## 2.TECH
 
  [全部内容](./docs/tech)
 
@@ -29,6 +29,6 @@
  
  [Spring-自动装配](./docs/tech/spring/Spring-自动装配.md)
 
-## 3.Think
+## 3.THINK
 
   [目录](./docs/think)
