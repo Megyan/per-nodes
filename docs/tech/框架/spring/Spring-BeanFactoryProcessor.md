@@ -26,7 +26,6 @@ ListableBeanFactory,最终由DefaultListableBeanFactory负责实现.
 ## 原理
 
 1)、ioc容器创建对象
-
 2)、invokeBeanFactoryPostProcessors(beanFactory);
 
 ```
@@ -34,5 +33,21 @@ ListableBeanFactory,最终由DefaultListableBeanFactory负责实现.
 	1）、直接在BeanFactory中找到所有类型是BeanFactoryPostProcessor(顶级父类)的组件，并执行他
 	们的方法
 	2）、在初始化创建其他组件前面执行
+```
+
+
+```java
+public class MyBeanFactoryPostProcessor implements BeanFactoryPostProcessor {
+
+	@Override
+	public void postProcessBeanFactory(ConfigurableListableBeanFactory beanFactory) throws BeansException {
+		System.out.println("MyBeanFactoryPostProcessor...postProcessBeanFactory...");
+		int count = beanFactory.getBeanDefinitionCount();
+		String[] names = beanFactory.getBeanDefinitionNames();
+		System.out.println("当前BeanFactory中有"+count+" 个Bean");
+		System.out.println(Arrays.asList(names));
+	}
+
+}
 ```
 
