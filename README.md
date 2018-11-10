@@ -29,6 +29,17 @@
  [Spring-属性赋值](./docs/tech/spring/Spring-属性赋值.md)
  
  [Spring-自动装配](./docs/tech/spring/Spring-自动装配.md)
+ 
+ [Spring-AOP](./docs/tech/spring/Spring-AOP.md)
+ 
+ [Spring-AOP源码](./docs/tech/spring/Spring-AOP源码.md)
+ 
+ [Spring-事务](./docs/tech/spring/Spring-事务.md)
+ 
+ [Spring-BeanFactoryPostProcesser](./docs/tech/spring/Spring-BeanFactoryPostProcesser.md)
+  
+ [Spring-BeanDefinitionRegistryPostProcessor](./docs/tech/spring/Spring-BeanDefinitionRegistryPostProcessor.md)
+
 
 ## 3.THINK
 
