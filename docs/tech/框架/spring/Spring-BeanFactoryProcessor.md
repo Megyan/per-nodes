@@ -26,6 +26,7 @@ ListableBeanFactory,最终由DefaultListableBeanFactory负责实现.
 ## 原理
 
 1)、ioc容器创建对象
+
 2)、invokeBeanFactoryPostProcessors(beanFactory);
 
 ```
