@@ -22,23 +22,23 @@
 
 ### Spring 源码阅读
 
- [Spring-组建注册](./docs/tech/spring/Spring-组建注册.md)
+ [Spring-组建注册](./docs/tech/框架/spring/Spring-组建注册.md)
  
- [Spring-bean的生命周期](./docs/tech/spring/Spring-bean的生命周期.md)
+ [Spring-bean的生命周期](./docs/tech/框架/spring/Spring-bean的生命周期.md)
  
- [Spring-属性赋值](./docs/tech/spring/Spring-属性赋值.md)
+ [Spring-属性赋值](./docs/tech/框架/spring/Spring-属性赋值.md)
  
- [Spring-自动装配](./docs/tech/spring/Spring-自动装配.md)
+ [Spring-自动装配](./docs/tech/框架/spring/Spring-自动装配.md)
  
- [Spring-AOP](./docs/tech/spring/Spring-AOP.md)
+ [Spring-AOP](./docs/tech/框架/spring/Spring-AOP.md)
  
- [Spring-AOP源码](./docs/tech/spring/Spring-AOP源码.md)
+ [Spring-AOP源码](./docs/tech/框架/spring/Spring-AOP源码.md)
  
- [Spring-事务](./docs/tech/spring/Spring-事务.md)
+ [Spring-事务](./docs/tech/框架/spring/Spring-事务.md)
  
- [Spring-BeanFactoryPostProcesser](./docs/tech/spring/Spring-BeanFactoryPostProcesser.md)
+ [Spring-BeanFactoryPostProcesser](./docs/tech/框架/spring/Spring-BeanFactoryPostProcesser.md)
   
- [Spring-BeanDefinitionRegistryPostProcessor](./docs/tech/spring/Spring-BeanDefinitionRegistryPostProcessor.md)
+ [Spring-BeanDefinitionRegistryPostProcessor](./docs/tech/框架/spring/Spring-BeanDefinitionRegistryPostProcessor.md)
 
 
 ## 3.THINK
