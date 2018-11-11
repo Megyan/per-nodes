@@ -23,6 +23,8 @@
 
 ### Spring 源码阅读
  
+ Q1:Spring 究竟是做什么的？为什么要用Spring?
+ Q2:有没有轻量DI框架？Dagger2/Google-Guice
 
  [Spring-组建注册](./docs/tech/框架/spring/Spring-组建注册.md)
  
