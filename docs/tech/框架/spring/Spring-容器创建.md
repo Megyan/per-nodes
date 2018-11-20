@@ -148,8 +148,8 @@ MessageSource.getMessage(String code, Object[] args, String defaultMessage, Loca
 		1）、获取容器中的所有Bean，依次进行初始化和创建对象
 		2）、获取Bean的定义信息；RootBeanDefinition
 		3）、Bean不是抽象的，是单实例的，是懒加载；
-         Bean创建的前置处理
-         Bean的创建过程
+         **Bean创建的前置处理**
+        ** Bean的创建过程**
          
 
 ### Bean创建的前置处理
@@ -227,20 +227,59 @@ String[] dependsOn = mbd.getDependsOn();
 ```
 
 5）、注册Bean的销毁方法；
-						
-			
+
+
+所有Bean都利用getBean创建完成以后；检查所有的Bean是否是SmartInitializingSingleton接口的；如果是；就执行afterSingletonsInstantiated()；
+
+SmartInitializingSingleton 原理：->afterSingletonsInstantiated();
+1）、ioc容器创建对象并refresh()；
+2）、finishBeanFactoryInitialization(beanFactory);初始化剩下的单实例bean；
+	1）、先创建所有的单实例bean；getBean();
+	2）、获取所有创建好的单实例bean，判断是否是SmartInitializingSingleton类型的；
+		如果是就调用afterSingletonsInstantiated();
+		
+**可以近似理解成bean都注册完毕的通知** 								
+  			
 ## 12.finishRefresh()
+
 完成BeanFactory的初始化创建工作；IOC容器就创建完成；
 1）、initLifecycleProcessor();初始化和生命周期有关的后置处理器；LifecycleProcessor
-	默认从容器中找是否有lifecycleProcessor的组件【LifecycleProcessor】；如果没有new DefaultLifecycleProcessor();
+	默认从容器中找是否有lifecycleProcessor的组件【LifecycleProcessor】；
+	如果没有new DefaultLifecycleProcessor();
 	加入到容器；
 	
+```	
 写一个LifecycleProcessor的实现类，可以在BeanFactory
 void onRefresh();
 void onClose();	
+```
 
 2）、	getLifecycleProcessor().onRefresh();
 	拿到前面定义的生命周期处理器（BeanFactory）；回调onRefresh()；
+	
 3）、publishEvent(new ContextRefreshedEvent(this));发布容器刷新完成事件；
+
 4）、liveBeansView.registerApplicationContext(this);
+
+
+## 总结
+
+1）、Spring容器在启动的时候，先会保存所有注册进来的Bean的定义信息；
+	1）、xml注册bean；<bean>
+	2）、注解注册Bean；@Service、@Component、@Bean、xxx
+2）、Spring容器会合适的时机创建这些Bean
+	1）、用到这个bean的时候；利用getBean创建bean；创建好以后保存在容器中；
+	2）、统一创建剩下所有的bean的时候；finishBeanFactoryInitialization()；
+3）、后置处理器；BeanPostProcessor
+	1）、每一个bean创建完成，都会使用各种后置处理器进行处理；来增强bean的功能；
+		AutowiredAnnotationBeanPostProcessor:处理自动注入
+		AnnotationAwareAspectJAutoProxyCreator:来做AOP功能；
+		xxx....
+		增强的功能注解：
+		AsyncAnnotationBeanPostProcessor
+		....
+4）、事件驱动模型；
+	ApplicationListener；事件监听；
+	ApplicationEventMulticaster；事件派发：
+	
 
