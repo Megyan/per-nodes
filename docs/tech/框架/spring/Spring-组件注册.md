@@ -1,5 +1,22 @@
 # Spring 组件注册
 
+添加组建的四种方式：
+
+* 1 @Bean: [导入第三方的类或包的组件],比如Person为第三方的类, 需要在我们的IOC容器中使用
+* 2 包扫描+组件的标注注解(@ComponentScan:  @Controller, @Service  @Repository  @ Component),一般是针对 我们自己写的类,使用这个
+* 3 @Import:[快速给容器导入一个组件] 
+
+    3.1 @Import(要导入到容器中的组件):容器会自动注册这个组件,bean 的 id为全类名
+    
+    3.2 ImportSelector:是一个接口,返回需要导入到容器的组件的全类名数组
+    
+    3.3 ImportBeanDefinitionRegistrar:可以手动添加组件到IOC容器, 所有Bean的注册可以使用
+    BeanDifinitionRegistry写JamesImportBeanDefinitionRegistrar实现
+    ImportBeanDefinitionRegistrar接口即可
+    
+* 4 使用Spring提供的FactoryBean进行注册
+
+
 ## 注册组件-@Configuration 和 @Bean
 
 代替配置文件的Configuration
@@ -88,6 +105,7 @@ public class MainConfig {
 ## 按条件注册Bean-@Conditional
 
 1.标记在类上,也可以标记在方法上
+
 2.conditional的规则可以自定义,需要实现指定的接口Condition
 
 ```java
@@ -125,6 +143,7 @@ public class LinuxCondition implements Condition {
 
 ```
 上例中也给出了上下文环境提供的能力.
+
 3.添加虚拟机运行参数
 `-Dos.name=liumy-os` -D是固定写法. 格式-D参数名称=参数值
 
@@ -272,4 +291,12 @@ public class ColorFactoryBean implements FactoryBean<Color> {
 }
 
 ```
+
+容器调用getObject()返回对象，把对象放到容器中；
+getObjectType()返回对象类型
+isSingleton()是否单例进行控制
+
+a）默认获取到的是工厂bean调用getObject创建的对象
+b）要获取工厂Bean本身，需要在id前加个  &jamesFactoryBean
+
 
