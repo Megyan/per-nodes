@@ -1,19 +1,10 @@
 # Spring-属性赋值
 
+有两种常用的方式 @Value 和 @PropertySource
+
+## @Value
 
 ```java
-//使用@PropertySource读取外部配置文件中的k/v保存到运行的环境变量中;加载完外部的配置文件以后使用${}取出配置文件的值
-@PropertySource(value={"classpath:/person.properties"})
-@Configuration
-public class MainConfigOfPropertyValues {
-	
-	@Bean
-	public Person person(){
-		return new Person();
-	}
-
-}
-
 public class Person {
 	
 	//使用@Value赋值；
@@ -32,8 +23,27 @@ public class Person {
 ```
 
 
-1.还有个牛逼的属性注解@EnableConfigurationProperties
+## @PropertySource
 
-**参考**
+```java
+//使用@PropertySource读取外部配置文件中的k/v保存到运行的环境变量中;加载完外部的配置文件以后使用${}取出配置文件的值
+@PropertySource(value={"classpath:/person.properties"})
+@Configuration
+public class MainConfigOfPropertyValues {
+	
+	@Bean
+	public Person person(){
+		return new Person();
+	}
+
+}
+```
+
+
+
+还有个牛逼的属性注解@EnableConfigurationProperties
+
+### 参考
+
 <https://www.jianshu.com/p/83693d3d0a65>
 
