@@ -38,7 +38,7 @@
  
  Q2:有没有轻量DI框架？Dagger2/Google-Guice
 
- [Spring-组建注册](./docs/tech/框架/spring/Spring-组建注册.md)
+ [Spring-组建注册](./docs/tech/框架/spring/Spring-组件注册.md)
  
  [Spring-bean的生命周期](./docs/tech/框架/spring/Spring-bean的生命周期.md)
  
