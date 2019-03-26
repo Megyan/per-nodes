@@ -1,14 +1,23 @@
 # Spring-bean的生命周期
 
 1.bean的生命周期是?
+
 2.使用@Bean的方式 实现初始化和注销方法(实际上的注销和初始化都是JVM做的,我们添加的都是额外的动作)
+
 2.初始化和销毁有四种方式
+
 3.容器创建对象的时机,单实例是?多实例是?
+
 4.**自定义初始化方法**被容器调用的时机?
+
 4.如果是多实例,容器会创建实例,但是不会负责管理.比如销毁的时候就不会调用自定义的销毁方法
+
 5.**InitializingBean**（定义初始化逻辑）的执行时机与自定义初始化方法一样
+
 6.**DisposableBean** 执行时机与自定义的销毁方法一样
+
 7.基于JSR250规范的**@PostConstruct和@PreDestroy**
+
 8.BeanPostProcessor 后置处理器.在bean初始化前后做一些工作.(这就是勾子)
 
 
@@ -43,32 +52,26 @@ public class MainConfigOfLifeCycle {
 ```
 ##  bean的生命周期
  
-bean创建---初始化----销毁的过程
-
-容器管理bean的生命周期；
- 我们可以自定义初始化和销毁方法；
- 容器在bean进行到当前生命周期的时候来调用我们自定义的初始化和销毁方法
+bean创建--->初始化--->销毁的过程
+容器管理bean的生命周期; 我们可以自定义初始化和销毁方法；
+容器在bean进行到当前生命周期的时候来调用我们自定义的初始化和销毁方法
  
  1.构造（对象创建）
  		单实例：在容器启动的时候创建对象
  		多实例：在每次获取的时候创建对象
  
  2.BeanPostProcessor.postProcessBeforeInitialization
+ 
  3.初始化：
  		对象创建完成，并赋值好，调用初始化方法。。。
+ 		
  4.BeanPostProcessor.postProcessAfterInitialization
+ 
  5.销毁：
  		单实例：容器关闭的时候
  		多实例：容器不会管理这个bean；容器不会调用销毁方法；
 
-```java
-/**
- * Spring底层对 BeanPostProcessor 的使用；
- * bean赋值，注入其他组件，@Autowired，生命周期注解功能，@Async,xxx BeanPostProcessor;
- *
- */
 
-```
 
 ## 指定初始化和销毁方法
 1）、指定初始化和销毁方法；
@@ -115,6 +118,9 @@ instantiateBean(){
  一但返回null，跳出for循环，不会执行后面的BeanPostProcessor.postProcessorsBeforeInitialization
  
 ## 常见的BeanPostProcessor实现
+
+Spring底层对 BeanPostProcessor 的使用；
+bean赋值，注入其他组件，@Autowired，生命周期注解功能，@Async,xxx BeanPostProcessor;
 
 1.ApplicationContextAware 负责注入容器上下文 ApplicationContextAwareProcessor负责处理.
 ApplicationContextAwareProcessor是BeanPostProcessor的一个实现
