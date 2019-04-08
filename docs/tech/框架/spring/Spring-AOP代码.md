@@ -19,13 +19,10 @@
 这里就是继承AbstractAutoProxyCreator使用setBeanFactory()
 
 ```	
-===========以上是创建和注册AnnotationAwareAspectJAutoProxyCreator的过程========
 AnnotationAwareAspectJAutoProxyCreator 的父类是 InstantiationAwareBeanPostProcessor
 
->实际上也是普通Bean的创建过程?
->遗留几个问题:
->1.BeanFactory 有什么用?
->2.AnnotationAwareAspectJAutoProxyCreator 之所以实现AbstractAutoProxyCreator有什么用?
+实际上也是普通Bean的创建过程，需要注意的是因为AnnotationAwareAspectJAutoProxyCreator实现了`BeanFactoryAware`所以在执行i`nitializeBean()`时，被注入了BeanFactory
+
 
 
 ### 创建普通单实例Bean的过程
