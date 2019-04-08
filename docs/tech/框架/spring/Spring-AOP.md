@@ -145,7 +145,7 @@ AnnotationAwareAspectJAutoProxyCreator
 
 4）、finishBeanFactoryInitialization(beanFactory);完成BeanFactory初始化工作；创建剩下的单实例bean
 
-[创建普通单实例Bean的过程](./AOP代码流程#创建普通单实例Bean的过程)
+[创建普通单实例Bean的过程](./AOP代码流程.md#创建普通单实例Bean的过程)
 
 
 
