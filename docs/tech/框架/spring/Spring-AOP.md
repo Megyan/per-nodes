@@ -92,12 +92,11 @@ internalAutoProxyCreator=AnnotationAwareAspectJAutoProxyCreator
 
 **给容器中注册一个AnnotationAwareAspectJAutoProxyCreator；**
 
-[两个点]
+总结下：
+a. @Import 目的是向Spring容器内注册一个Bean
 
-`@Import 目的是向Spring容器内注册一个Bean`
-
-`AspectJAutoProxyRegistrar 最终会调用
-registerOrEscalateApcAsRequired(**AnnotationAwareAspectJAutoProxyCreator.class**, registry, source);注册`
+b. AspectJAutoProxyRegistrar 最终会调用
+registerOrEscalateApcAsRequired(**AnnotationAwareAspectJAutoProxyCreator.class**, registry, source);注册
 
 所以现在我们来看看AnnotationAwareAspectJAutoProxyCreator 有什么功能?
 
@@ -118,6 +117,7 @@ AnnotationAwareAspectJAutoProxyCreator
 从顶层父类开始查看功能,下面是我们要关注的父类及其方法
 
     AbstractAutoProxyCreator.setBeanFactory()
+    
     AbstractAutoProxyCreator.有后置处理器的逻辑；
     
     AbstractAdvisorAutoProxyCreator.setBeanFactory() -> initBeanFactory()
@@ -128,7 +128,9 @@ AnnotationAwareAspectJAutoProxyCreator
 ### 处理器和Bean的创建过程
 
 1）、传入配置类，创建ioc容器
+
 2）、注册配置类，调用refresh（）刷新容器；
+
 3）、registerBeanPostProcessors(beanFactory);注册bean的后置处理器来方便拦截bean的创建；
 
 	1）、先获取ioc容器已经定义了的需要创建对象的所有BeanPostProcessor
@@ -142,7 +144,8 @@ AnnotationAwareAspectJAutoProxyCreator
 		beanFactory.addBeanPostProcessor(postProcessor);
 
 4）、finishBeanFactoryInitialization(beanFactory);完成BeanFactory初始化工作；创建剩下的单实例bean
-锚点[创建普通单实例Bean的过程]
+
+[创建普通单实例Bean的过程](./AOP代码流程#创建普通单实例Bean的过程)
 
 
 
@@ -246,6 +249,5 @@ postProcessAfterInitialization；
 		3）、效果：
 			正常执行：前置通知-》目标方法-》后置通知-》返回通知
 			出现异常：前置通知-》目标方法-》后置通知-》异常通知
-		
-
+	
 
