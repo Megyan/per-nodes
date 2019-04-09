@@ -85,7 +85,7 @@ public class LogAspects {
 
 ```
 给容器中导入AspectJAutoProxyRegistrar
-利用AspectJAutoProxyRegistrar自定义给容器中注册bean；BeanDefinetion 
+利用AspectJAutoProxyRegistrar自定义给容器中注册bean；保存Bean的定义信息：BeanDefinetion 
 实际上注册时就是下面的类
 internalAutoProxyCreator=AnnotationAwareAspectJAutoProxyCreator
 ```
@@ -125,7 +125,7 @@ AnnotationAwareAspectJAutoProxyCreator
     AnnotationAwareAspectJAutoProxyCreator.initBeanFactory()
 
 
-### 处理器和Bean的创建过程
+### 处理器AnnotationAwareAspectJAutoProxyCreator的创建过程
 
 1）、传入配置类，创建ioc容器
 
@@ -134,19 +134,29 @@ AnnotationAwareAspectJAutoProxyCreator
 3）、registerBeanPostProcessors(beanFactory);注册bean的后置处理器来方便拦截bean的创建；
 
 	1）、先获取ioc容器已经定义了的需要创建对象的所有BeanPostProcessor
+	
+	   PostProcessorRegistrationDelegate#registerBeanPostProcessors
+	   
 	2）、给容器中加别的BeanPostProcessor
+	
+	beanFactory.addBeanPostProcessor(new BeanPostProcessorChecker(beanFactory, beanProcessorTargetCount));
+
 	3）、优先注册实现了PriorityOrdered接口的BeanPostProcessor；
+	
 	4）、再给容器中注册实现了Ordered接口的BeanPostProcessor；
+	
 	5）、注册没实现优先级接口的BeanPostProcessor；
+	
 	6）、注册BeanPostProcessor，实际上就是创建BeanPostProcessor对象，保存在容器中；
-	     如何创建BeanPostProcessor呢? 锚点[创建后置处理器的过程]
+	     如何创建BeanPostProcessor呢? 
+[创建后置处理器的过程](./AOP代码流程.md#创建后置处理器的过程)
+	     
 	7）、把BeanPostProcessor注册到BeanFactory中；
 		beanFactory.addBeanPostProcessor(postProcessor);
 
 4）、finishBeanFactoryInitialization(beanFactory);完成BeanFactory初始化工作；创建剩下的单实例bean
 
-[创建普通单实例Bean的过程](./Spring-AOP代码.md#创建普通单实例Bean的过程)
-
+[创建普通单实例Bean的过程](./AOP代码流程.md#创建普通单实例Bean的过程)
 
 ### 后置处理器的作用-创建代理对象
 
@@ -154,43 +164,61 @@ AnnotationAwareAspectJAutoProxyCreator
 
 AnnotationAwareAspectJAutoProxyCreator【InstantiationAwareBeanPostProcessor】	的作用：
 
-**后置处理器-BeforeInstantiation** //尝试创建代理对象,失败
-1）、每一个bean创建之前，调用postProcessBeforeInstantiation()；
+1）、每一个bean创建之前，在`createBean（）`调用postProcessBeforeInstantiation() 尝试返回代理对象。AbstractAutoProxyCreator#postProcessBeforeInstantiation()的具体内容如下：
 
 ```
 1）、判断当前bean是否在advisedBeans中（保存了所有需要增强bean）
 2）、判断当前bean是否是基础类型的Advice、Pointcut、Advisor、AopInfrastructureBean，
-或者是否是切面（@Aspect）
-3）、是否需要跳过
-    1）、获取候选的增强器（切面里面的通知方法）【List<Advisor> candidateAdvisors】
+或者是否是切面（@Aspect） isInfrastructureClass(beanClass)
+3）、是否需要跳过 shouldSkip(beanClass, beanName)
+    a 获取候选的增强器（切面里面的通知方法）【List<Advisor> candidateAdvisors】
     	   判断每一个增强器是否是 AspectJPointcutAdvisor 类型的；就会返回true
-    	当前例子中每一个封装的通知方法的增强器是 InstantiationModelAwarePointcutAdvisor；
-    	   所以返回false
+    	   当前例子中每一个封装的通知方法的增强器是 
+    	   InstantiationModelAwarePointcutAdvisor；所以返回false
     
-    2）、调用父类方法,返回false
+    b 调用父类方法,永远返回false
 ```
 
 对于普通的类postProcessBeforeInstantiation 什么作用都没有.
-然后紧接着调用new 创建对象.
+因为当前类调用`postProcessBeforeInstantiation()`没有创建代理对象。所以紧接着调用new创建对象.
 
-2）、**后置处理器-AfterInstantiation** //本质是遍历所有增强器,使用切入点表达式对bean进行适配
-postProcessAfterInitialization；
-		return wrapIfNecessary(bean, beanName, cacheKey);//包装如果需要的情况下
-		1）、获取当前bean的所有增强器（通知方法）  Object[]  specificInterceptors
-			1、找到候选的所有的增强器（找哪些通知方法是需要切入当前bean方法的）
-			2、获取到能在bean使用的增强器(根据定义的切入点表达式进行判断)。
-			3、给增强器排序
-		2）、保存当前bean在advisedBeans中；(表示当前bean已经增强处理了)
-		3）、如果当前bean需要增强，创建当前bean的代理对象；
-			1）、获取所有增强器（通知方法）
-			2）、保存到proxyFactory
-			3）、创建代理对象：Spring自动决定
-				JdkDynamicAopProxy(config);jdk动态代理；
-				ObjenesisCglibAopProxy(config);cglib的动态代理；
-		4）、给容器中返回当前组件使用cglib增强了的代理对象；
-		5）、以后容器中获取到的就是这个组件的代理对象，执行目标方法的时候，代理对象就会执行通知方法的流程；
+```
+如果当前类是自定义类型的，最终会调用AbstractAutoProxyCreator#createProxy去创建代理对象。
+实际上本例最终也是调用AbstractAutoProxyCreator#createProxy
+```
 
-### 目标方法执行		
+
+2）、创建对象后调用**postProcessAfterInitialization()** `这就是普通Bean在initializeBean() 所执行的内容`；本质是遍历所有增强器,使用切入点表达式对bean进行适配
+
+AbstractAutoProxyCreator#postProcessAfterInitialization
+
+```
+return wrapIfNecessary(bean, beanName, cacheKey);//包装如果需要的情况下
+
+1）、获取当前bean的所有增强器（通知方法）getAdvicesAndAdvisorsForBean() 返回Object[]specificInterceptors
+
+	1、找到候选的所有的增强器（找哪些通知方法是需要切入当前bean方法的） 
+	2、获取到能在bean使用的增强器(根据定义的切入点表达式进行判断)。
+	   怎么找到呢？AopUtils#canApply()应用切入点表达式去适配
+	3、给增强器排序 不用关心
+	
+2）、保存当前bean在advisedBeans中；(表示当前bean已经增强处理了) 不用关心
+     就是这句 this.advisedBeans.put(cacheKey, Boolean.TRUE);
+     
+3）、如果当前bean需要增强，创建当前bean的代理对象；createProxy()
+
+	1）、获取所有增强器（通知方法）
+	2）、保存到proxyFactory
+	3）、创建代理对象：Spring自动决定。如果代理对象有接口，Spring会选择jdk动态代理，否则会选择cglib
+		JdkDynamicAopProxy(config);jdk动态代理；
+		ObjenesisCglibAopProxy(config);cglib的动态代理；
+		具体创建过程可以参考这两个家伙
+		
+4）、给容器中返回当前组件使用cglib增强了的代理对象；
+5）、以后容器中获取到的就是这个组件的代理对象，执行目标方法的时候，代理对象就会执行通知方法的流程；
+```
+
+### 目标方法执行-方法调用链条	
 
 容器中保存了组件的代理对象（cglib增强后的对象），这个对象里面保存了详细信息（比如增强器，目标对象，xxx）；
 
