@@ -253,23 +253,85 @@ c、getInterceptors()将增强器转为List<MethodInterceptor>；
 a、如果没有拦截器执行执行目标方法，或者拦截器的索引和拦截器数组-1大小一样（指定到了最后一个拦截器）执行目标方法(就是执行了真正的方法)；
 
 b、链式获取每一个拦截器，拦截器执行invoke方法，每一个拦截器等待下一个拦截器执行完成返回以后再来执行；
-```  
-	
+```  	
 拦截器链的机制，保证通知方法与目标方法的执行顺序；
 其实利用递归+全局变量(记录调用顺序)+threadLocal
 	  
 ![](../img/aop.jpg)
 
+ReflectiveMethodInvocation#proceed()执行简介
+
+```java
+public Object proceed() throws Throwable {
+		//	We start with an index of -1 and increment early.
+		if (this.currentInterceptorIndex == this.interceptorsAndDynamicMethodMatchers.size() - 1) {
+			return invokeJoinpoint(); // 执行目标对象的方法
+		}
+      // ······忽略掉中间代码
+		}
+		else {
+			// It's an interceptor, so we just invoke it: The pointcut will have
+			// been evaluated statically before this object was constructed.
+			return ((MethodInterceptor) interceptorOrInterceptionAdvice).invoke(this);
+		}
+	}
+```
+
+1.第一个被执行的拦截器是**ExposeInvocationInterceptor**,这个拦截器会执行`invoke(this)`
+最终会调用到`ExposeInvocationInterceptor#invoke`
+
+```java
+public Object invoke(MethodInvocation mi) throws Throwable {
+		MethodInvocation oldInvocation = invocation.get();
+		invocation.set(mi);
+		try {
+			return mi.proceed();
+		}
+		finally {
+			invocation.set(oldInvocation);
+		}
+	}
+```
+
+这个方法会将ReflectiveMethodInvocation对象存入`threadLocal`，并执行ReflectiveMethodInvocation.proceed() 这递归了。
+
+同理其他拦截器最终也会调用ReflectiveMethodInvocation.proceed()，造成不断的递归。
+
+2.已后置监听拦截器递归调用为例
+
+```java
+public Object invoke(MethodInvocation mi) throws Throwable {
+		try {
+			return mi.proceed(); //负责调用前置通知拦截器MethodBeforeAdviceInterceptor#invoke
+		}
+		finally {
+			invokeAdviceMethod(getJoinPointMatch(), null, null); //调用后置监听方法
+		}
+	}
+```
+当前置监听器拦截器执行完毕后，就会进入finally执行后置监听。
+
+2.直到调用到前置通知的拦截器`MethodBeforeAdviceInterceptor#invoke`
+
+```java
+public Object invoke(MethodInvocation mi) throws Throwable {
+		this.advice.before(mi.getMethod(), mi.getArguments(), mi.getThis() );
+		return mi.proceed();
+	}
+```
+
+在这个拦截器中首先调用了前置监听
+
 ## 总结		
 
-1）、 @EnableAspectJAutoProxy 开启AOP功能
+1.@EnableAspectJAutoProxy 开启AOP功能
 
-2）、 @EnableAspectJAutoProxy 会给容器中注册一个组件
+2.@EnableAspectJAutoProxy 会给容器中注册一个组件
       AnnotationAwareAspectJAutoProxyCreator
 
-3）、AnnotationAwareAspectJAutoProxyCreator是一个**后置处理器**；
+3.AnnotationAwareAspectJAutoProxyCreator是一个**后置处理器**；
 
-4）、容器的创建流程：`后置处理器怎么工作`
+4.容器的创建流程：`后置处理器怎么工作`
 
 	1）、registerBeanPostProcessors（）注册后置处理器；创建AnnotationAwareAspectJAutoProxyCreator对象
 	2）、finishBeanFactoryInitialization（）初始化剩下的单实例bean
@@ -278,7 +340,7 @@ b、链式获取每一个拦截器，拦截器执行invoke方法，每一个拦�
 		3）、组件创建完之后，判断组件是否需要增强
 			是：切面的通知方法，包装成增强器（Advisor）;给业务逻辑组件创建一个代理对象（cglib）；
 			
-5）、执行目标方法：
+5.执行目标方法：
 
 	1）、代理对象执行目标方法
 	2）、CglibAopProxy.intercept()；
