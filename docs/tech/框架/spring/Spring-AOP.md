@@ -222,31 +222,40 @@ return wrapIfNecessary(bean, beanName, cacheKey);//包装如果需要的情况�
 
 容器中保存了组件的代理对象（cglib增强后的对象），这个对象里面保存了详细信息（比如增强器，目标对象，xxx）；
 
-1）、CglibAopProxy.intercept();拦截目标方法的执行 
+1）、CglibAopProxy.DynamicAdvisedInterceptor#intercept();拦截目标方法的执行 
    `实际上在创建代理的对象的时候就将一系列的拦截器设置进去了`
+   
 2）、根据ProxyFactory对象获取将要执行的目标方法拦截器链；
 	`List<Object> chain = this.advised.getInterceptorsAndDynamicInterceptionAdvice(method, targetClass);`
-	
-    	1）、List<Object> interceptorList保存所有拦截器,list长度是5
-    		 一个默认的ExposeInvocationInterceptor 和 4个增强器；so 1+4=5
-    	2）、遍历所有的增强器，将其转为Interceptor；
-    		 关键代码:registry.getInterceptors(advisor);
-    	3）、将增强器转为List<MethodInterceptor>；
-    		如果是MethodInterceptor，直接加入到集合中
-    		如果不是，使用AdvisorAdapter将增强器转为MethodInterceptor；
-    		转换完成返回MethodInterceptor数组；
+
+如何获取拦截器链呢？简单来说，就是将各种通知包装成拦截器放进List中。下面的可以不看。
+
+```	
+a、List<Object> interceptorList保存所有拦截器,list长度是5
+	 一个默认的ExposeInvocationInterceptor 和 4个增强器；so 1+4=5
+b、遍历所有的增强器（各种通知方法），将其转为Interceptor；
+	 关键代码:registry.getInterceptors(advisor);
+c、getInterceptors()将增强器转为List<MethodInterceptor>；
+	如果是MethodInterceptor，直接加入到集合中
+	如果不是，使用AdvisorAdapter将增强器转为MethodInterceptor；
+	转换完成返回MethodInterceptor数组；
+```
 
 3）、如果没有拦截器链，直接执行目标方法;
 	  拦截器链（每一个通知方法又被包装为方法拦截器，利用MethodInterceptor机制）
-4）、如果有拦截器链，把需要执行的目标对象，目标方法，
-	  拦截器链等信息传入创建一个 CglibMethodInvocation 对象，
-	  并调用 Object retVal =  mi.proceed();
+	  
+4）、如果有拦截器链，把需要执行的目标对象，目标方法，拦截器链等信息传入创建一个 `CglibMethodInvocation `对象，并调用 `proceed()`;
+`Object retVal = new CglibMethodInvocation(proxy, target, method, args, targetClass, chain, methodProxy).proceed()`
+
 5）、拦截器链的触发过程;
-    	1)、如果没有拦截器执行执行目标方法，或者拦截器的索引和拦截器数组-1大小一样（指定到了最后一个拦截器）执行目标方法(就是执行了真正的方法)；
-    	2)、链式获取每一个拦截器，拦截器执行invoke方法，每一个拦截器等待下一个拦截器执行完成返回以后再来执行；
-    	
-	  拦截器链的机制，保证通知方法与目标方法的执行顺序；
-	  其实利用递归+全局变量(记录调用顺序)+threadLocal
+
+```
+a、如果没有拦截器执行执行目标方法，或者拦截器的索引和拦截器数组-1大小一样（指定到了最后一个拦截器）执行目标方法(就是执行了真正的方法)；
+
+b、链式获取每一个拦截器，拦截器执行invoke方法，每一个拦截器等待下一个拦截器执行完成返回以后再来执行；
+```  	
+拦截器链的机制，保证通知方法与目标方法的执行顺序；
+其实利用递归+全局变量(记录调用顺序)+threadLocal
 	  
 ![](../img/aop.jpg)
 
@@ -260,6 +269,7 @@ return wrapIfNecessary(bean, beanName, cacheKey);//包装如果需要的情况�
 3）、AnnotationAwareAspectJAutoProxyCreator是一个**后置处理器**；
 
 4）、容器的创建流程：`后置处理器怎么工作`
+
 	1）、registerBeanPostProcessors（）注册后置处理器；创建AnnotationAwareAspectJAutoProxyCreator对象
 	2）、finishBeanFactoryInitialization（）初始化剩下的单实例bean
 		1）、创建业务逻辑组件和切面组件
@@ -268,6 +278,7 @@ return wrapIfNecessary(bean, beanName, cacheKey);//包装如果需要的情况�
 			是：切面的通知方法，包装成增强器（Advisor）;给业务逻辑组件创建一个代理对象（cglib）；
 			
 5）、执行目标方法：
+
 	1）、代理对象执行目标方法
 	2）、CglibAopProxy.intercept()；
 		1）、得到目标方法的拦截器链（增强器包装成拦截器MethodInterceptor）
