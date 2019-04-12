@@ -1,16 +1,18 @@
 # Spring-BeanDefinitionRegistryPostProcessor
 
-BeanFactoryPostProcessor的子接口.
+1.BeanFactoryPostProcessor的子接口.
 
-postProcessBeanDefinitionRegistry();
+2.**postProcessBeanDefinitionRegistry()**;
 在所有bean定义信息将要被加载，bean实例还未创建的；
 
-优先于BeanFactoryPostProcessor执行；
-利用BeanDefinitionRegistryPostProcessor给容器中再额外添加一些组件；
+3.优先于`BeanFactoryPostProcessor`执行；
 
-**原理**
+4.可以利用`BeanDefinitionRegistryPostProcessor`给容器中再额外添加一些组件；
+
+## 原理
 基本同BeanFactoryPostProcessor.
-首先利用beanFactory获取到所有BeanDefinitionRegistryPostProcessor的名称,然后
+
+首先利用beanFactory获取到所有BeanDefinitionRegistryPostProcessor的名称
 
 ```java
 			postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
@@ -28,12 +30,14 @@ invokeBeanDefinitionRegistryPostProcessors(currentRegistryProcessors, registry);
 
 
 1）、ioc创建对象
+
 2）、refresh()-> invokeBeanFactoryPostProcessors(beanFactory);
+
 3）、从容器中获取到所有的BeanDefinitionRegistryPostProcessor组件。
 
 ```
-	1、依次触发所有的postProcessBeanDefinitionRegistry()方法
-	2、再来触发postProcessBeanFactory()方法BeanFactoryPostProcessor；
+1、依次触发所有的postProcessBeanDefinitionRegistry()方法
+2、再来触发postProcessBeanFactory()方法BeanFactoryPostProcessor；
 ```
 
 4）、再来从容器中找到BeanFactoryPostProcessor组件；然后依次触发postProcessBeanFactory()方法
