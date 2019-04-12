@@ -15,9 +15,12 @@
 首先利用beanFactory获取到所有BeanDefinitionRegistryPostProcessor的名称
 
 ```java
-			postProcessorNames = beanFactory.getBeanNamesForType(BeanDefinitionRegistryPostProcessor.class, true, false);
-
+postProcessorNames = beanFactory.getBeanNamesForType(
+    BeanDefinitionRegistryPostProcessor.class
+    , true
+    , false);
 ```
+
 然后获取到实例对象,并且执行
 
 ```java
