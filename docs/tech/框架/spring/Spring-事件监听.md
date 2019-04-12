@@ -96,6 +96,8 @@ public class MyApplicationListener implements ApplicationListener<ApplicationEve
 **SmartInitializingSingleton** 是在所有单实例bean都实例化后才会执行的,类似于发布了`ContextRefreshedEvent`.但是关注这个事件的对象无需实现ApplicationListener.
 也就是说,如果你关系实例创建完毕,但是又不想监听ContextRefreshedEvent.你可以使用**SmartInitializingSingleton**
 
+@EventListener的处理器`EventListenerMethodProcessor`就是**SmartInitializingSingleton**
+
 SmartInitializingSingleton 原理：->afterSingletonsInstantiated();
 
 ```
