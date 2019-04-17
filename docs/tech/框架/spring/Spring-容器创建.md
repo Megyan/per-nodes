@@ -104,9 +104,9 @@ BeanPostProcessor的类型：
 
 * BeanPostProcessor、
 * DestructionAwareBeanPostProcessor、执行bean销毁方法的后置处理器
-* InstantiationAwareBeanPostProcessor、
+* InstantiationAwareBeanPostProcessor、 Bean对象创建之前进行处理，比如试图返回一个代理对象
 * SmartInstantiationAwareBeanPostProcessor、
-* MergedBeanDefinitionPostProcessor【internalPostProcessors】、
+* MergedBeanDefinitionPostProcessor【internalPostProcessors】在Bean实例化之后执行、
 		
 1）获取所有的 BeanPostProcessor;
    后置处理器都默认可以通过PriorityOrdered、Ordered接口来执行优先级
@@ -145,57 +145,87 @@ MessageSource.getMessage(String code, Object[] args, String defaultMessage, Loca
 
 ## 8.initApplicationEventMulticaster()
 
-初始化事件派发器；
-1）、获取BeanFactory
-2）、从BeanFactory中获取applicationEventMulticaster的ApplicationEventMulticaster；
-3）、如果上一步没有配置；创建一个SimpleApplicationEventMulticaster
-4）、将创建的ApplicationEventMulticaster添加到BeanFactory中，以后其他组件直接自动注入
+`org.springframework.context.support.AbstractApplicationContext#initApplicationEventMulticaster`初始化事件派发器；
+
+1）获取BeanFactory
+
+2）从BeanFactory中获取applicationEventMulticaster的ApplicationEventMulticaster；
+
+3）如果上一步没有配置；创建一个SimpleApplicationEventMulticaster
+
+4）将创建的ApplicationEventMulticaster添加到BeanFactory中，以后其他组件直接自动注入
 
 ## 9.onRefresh()
-留给子容器（子类）
-1、子类重写这个方法，在容器刷新的时候可以自定义逻辑；
+
+留给子容器（子类）。子类重写这个方法，在容器刷新的时候可以自定义逻辑；
 
 ## 10.registerListeners()
-给容器中将所有项目里面的ApplicationListener注册进来；
+
+`org.springframework.context.support.AbstractApplicationContext#registerListeners`给容器中将所有项目里面的ApplicationListener注册进来；
 
 1、从容器中拿到所有的ApplicationListener
+
 2、将每个监听器添加到事件派发器中；
 
 ```java		getApplicationEventMulticaster().addApplicationListenerBean(listenerBeanName);
 ```
+
 3、派发之前步骤产生的事件；
 
 ## 11.finishBeanFactoryInitialization(beanFactory)
+
 初始化所有剩下的单实例bean；
-	1、beanFactory.preInstantiateSingletons();初始化后剩下的单实例bean
-		1）、获取容器中的所有Bean，依次进行初始化和创建对象
-		2）、获取Bean的定义信息；RootBeanDefinition
-		3）、Bean不是抽象的，是单实例的，是懒加载；
-         **Bean创建的前置处理**
-        ** Bean的创建过程**
-         
+`org.springframework.beans.factory.support.DefaultListableBeanFactory#preInstantiateSingletons`
+
+* 1、获取容器中的所有Bean，依次进行初始化和创建对象
+* 2、获取Bean的定义信息；RootBeanDefinition
+* 3、Bean不是抽象的，是单实例的，不是懒加载；
+    3.1、 判断是否是FactoryBean；是否是实现FactoryBean接口的Bean；
+    3.2、 不是工厂Bean。利用getBean(beanName);创建对象
+* 4、**Bean创建的前置处理**
+* 5、**Bean的创建过程**     
 
 ### Bean创建的前置处理
-0、getBean(beanName)； ioc.getBean();
-1、doGetBean(name, null, null, false);
-2、先获取缓存中保存的单实例Bean。如果能获取到说明这个Bean之前被创建过（所有创建过的单实例Bean都会被缓存起来）
+
+0、`AbstractBeanFactory#getBean(java.lang.String)` getBean(beanName)；当容器执行ioc.getBean();就是我们需要使用这个Bean的时候。
+
+1、AbstractBeanFactory#doGetBean(name, null, null, false);
+
+2、先获取缓存中保存的单实例Bean。如果能获取到说明这个Bean之前被创建过（所有创建过的单实例Bean都会被缓存起来）。下面这个Map就是缓存bean实例对象的。
 
 ```java
 private final Map<String, Object> singletonObjects = new ConcurrentHashMap<String, Object>(256);
 ```
 3、缓存中获取不到，开始Bean的创建对象流程；
-4、标记当前bean已经被创建 `防止多线程同时创建多个Bean实例对象`
-5、获取Bean的定义信息；
-6、**获取当前Bean依赖的其他Bean;如果有按照getBean()把依赖的Bean先创建出来；**
 
-```java
-String[] dependsOn = mbd.getDependsOn();
-```
+4、`markBeanAsCreated(beanName);`标记当前bean已经被创建 ，防止多线程同时创建多个Bean实例对象
+
+5、获取Bean的定义信息；
+
+6、String[] dependsOn = mbd.getDependsOn();**获取当前Bean依赖的其他Bean;如果有按照getBean()把依赖的Bean先创建出来；**
+
 7、启动单实例Bean的创建流程；
 
 ### Bean的创建流程-创建代理对象
-1）、createBean(beanName, mbd, args);
-2）、Object bean = resolveBeforeInstantiation(beanName, mbdToUse);
+
+这一步其实挺有意思，Spring本身也是使用BeanFactory创建对象的
+
+```java
+// Create bean instance.
+if (mbd.isSingleton()) {
+	sharedInstance = getSingleton(beanName, new ObjectFactory<Object>() {
+		@Override
+		public Object getObject() throws BeansException {
+			try {
+				return createBean(beanName, mbd, args);
+			}
+		//...省略
+		}
+}
+```
+1、AbstractAutowireCapableBeanFactory#createBean(beanName, mbd, args);
+
+2、`Object bean = resolveBeforeInstantiation(beanName, mbdToUse)`;
 让BeanPostProcessor先拦截返回代理对象；
 
 ```
@@ -204,59 +234,78 @@ String[] dependsOn = mbd.getDependsOn();
 如果有返回值：触发postProcessAfterInitialization()；
 ```
 
-3）、如果前面的InstantiationAwareBeanPostProcessor没有返回代理对象；调用4）
-4）、Object beanInstance = doCreateBean(beanName, mbdToUse, args);创建Bean
-5）、将创建的Bean添加到缓存中singletonObjects；
+3、如果前面的InstantiationAwareBeanPostProcessor没有返回代理对象；调用4
 
-### Bean的创建流程-创建真实对象 doCreateBean(beanName, mbdToUse, args)
+4、`Object beanInstance = doCreateBean(beanName, mbdToUse, args);`[创建Bean](#Bean的创建流程-创建真实对象)
+
+5、将创建的Bean添加到缓存中singletonObjects；
+
+### Bean的创建流程-创建真实对象 
+
 三步曲 【创建Bean实例】【Bean属性赋值】【Bean初始化】
- 1）、**【创建Bean实例】**；createBeanInstance(beanName, mbd, args);
- 	**利用工厂方法或者对象的构造器**创建出Bean实例；
+
+
+ 1、**【创建Bean实例】**
+ AbstractAutowireCapableBeanFactory#createBeanInstance(beanName, mbd, args);
+ **利用工厂方法或者对象的构造器**创建出Bean实例；
+ 什么叫工厂方法呢？类似下面这种创建Bean的方式就是。
+ 
+ ```java
+ 	@Bean
+	public Blue blue(){
+		return new Blue();
+	}
+ ```
  	
- 2）、applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);
- 	调用MergedBeanDefinitionPostProcessor-后置处理器的
- 	postProcessMergedBeanDefinition(mbd, beanType, beanName);修改bean的定义
+ 2、创建Bean之后，`applyMergedBeanDefinitionPostProcessors(mbd, beanType, beanName);`
+ 
+ 	调用这种类型的MergedBeanDefinitionPostProcessor-后置处理器
+ 	postProcessMergedBeanDefinition(mbd, beanType, beanName);
+
  	
- 	`后置处理器的执行时机各不相同,bean创建之前,bean创建之后,属性赋值之前,`
- 	
- 	
- 3）、**【Bean属性赋值】**populateBean(beanName, mbd, instanceWrapper);
+ 3、**【Bean属性赋值】** populateBean(beanName, mbd, instanceWrapper);
  
 ```
 赋值之前：
 1）、拿到InstantiationAwareBeanPostProcessor后置处理器；
 	postProcessAfterInstantiation()；
 2）、拿到InstantiationAwareBeanPostProcessor后置处理器；
-	postProcessPropertyValues()；
+	postProcessPropertyValues()；获取一些EL表达式设置的值
 =====赋值之前：===
 3）、应用Bean属性的值；为属性利用setter方法等进行赋值；
 	applyPropertyValues(beanName, mbd, bw, pvs);
 ```
  	
- 4）、**【Bean初始化】**initializeBean(beanName, exposedObject, mbd);
+ 4、**【Bean初始化】** initializeBean(beanName, exposedObject, mbd);
  
 ```
-1）、【执行Aware接口方法】invokeAwareMethods(beanName, bean);执行xxxAware接口的方法
+1、【执行Aware接口方法】invokeAwareMethods(beanName, bean);执行xxxAware接口的方法
 	BeanNameAware\BeanClassLoaderAware\BeanFactoryAware
-2）、【执行后置处理器初始化之前】
-   applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName);
-	BeanPostProcessor.postProcessBeforeInitialization（）;
-3）、【执行初始化方法】invokeInitMethods(beanName, wrappedBean, mbd);
+	就是向Bean注入一些对象，比如容器对象
+	
+2、【执行后置处理器 初始化之前】
+   applyBeanPostProcessorsBeforeInitialization(wrappedBean, beanName)方法内部就是执
+   行BeanPostProcessor.postProcessBeforeInitialization（）;
+	
+3、【执行初始化方法】invokeInitMethods(beanName, wrappedBean, mbd);
 	1）、是否是InitializingBean接口的实现；执行接口规定的初始化；
 	2）、是否自定义初始化方法；
-4）、【执行后置处理器初始化之后】applyBeanPostProcessorsAfterInitialization
+	
+4、【执行后置处理器初始化之后】applyBeanPostProcessorsAfterInitialization
 	BeanPostProcessor.postProcessAfterInitialization()；
  
 ```
 
-5）、注册Bean的销毁方法；
+5、注册Bean的销毁方法；
 
 
-所有Bean都利用getBean创建完成以后；检查所有的Bean是否是SmartInitializingSingleton接口的；如果是；就执行afterSingletonsInstantiated()；
+所有Bean都利用getBean创建完成以后；检查所有的Bean是否是SmartInitializingSingleton接口的；如果是，就执行afterSingletonsInstantiated()；
 
 SmartInitializingSingleton 原理：->afterSingletonsInstantiated();
 1）、ioc容器创建对象并refresh()；
+
 2）、finishBeanFactoryInitialization(beanFactory);初始化剩下的单实例bean；
+
 	1）、先创建所有的单实例bean；getBean();
 	2）、获取所有创建好的单实例bean，判断是否是SmartInitializingSingleton类型的；
 		如果是就调用afterSingletonsInstantiated();
@@ -266,7 +315,9 @@ SmartInitializingSingleton 原理：->afterSingletonsInstantiated();
 ## 12.finishRefresh()
 
 完成BeanFactory的初始化创建工作；IOC容器就创建完成；
-1）、initLifecycleProcessor();初始化和生命周期有关的后置处理器；LifecycleProcessor
+
+1、initLifecycleProcessor();BeanFactory的初始化和生命周期有关的后置处理器；
+   LifecycleProcessor
 	默认从容器中找是否有lifecycleProcessor的组件【LifecycleProcessor】；
 	如果没有new DefaultLifecycleProcessor();
 	加入到容器；
@@ -277,23 +328,28 @@ void onRefresh();
 void onClose();	
 ```
 
-2）、	getLifecycleProcessor().onRefresh();
+2、getLifecycleProcessor().onRefresh();
 	拿到前面定义的生命周期处理器（BeanFactory）；回调onRefresh()；
 	
-3）、publishEvent(new ContextRefreshedEvent(this));发布容器刷新完成事件；
+3、publishEvent(new ContextRefreshedEvent(this));发布容器刷新完成事件；
 
-4）、liveBeansView.registerApplicationContext(this);
+4、liveBeansView.registerApplicationContext(this);
 
 
 ## 总结
 
 1）、Spring容器在启动的时候，先会保存所有注册进来的Bean的定义信息；
+
 	1）、xml注册bean；<bean>
 	2）、注解注册Bean；@Service、@Component、@Bean、xxx
+	
 2）、Spring容器会合适的时机创建这些Bean
+
 	1）、用到这个bean的时候；利用getBean创建bean；创建好以后保存在容器中；
 	2）、统一创建剩下所有的bean的时候；finishBeanFactoryInitialization()；
+	
 3）、后置处理器；BeanPostProcessor
+
 	1）、每一个bean创建完成，都会使用各种后置处理器进行处理；来增强bean的功能；
 		AutowiredAnnotationBeanPostProcessor:处理自动注入
 		AnnotationAwareAspectJAutoProxyCreator:来做AOP功能；
@@ -301,7 +357,9 @@ void onClose();
 		增强的功能注解：
 		AsyncAnnotationBeanPostProcessor
 		....
+		
 4）、事件驱动模型；
+
 	ApplicationListener；事件监听；
 	ApplicationEventMulticaster；事件派发：
 	
