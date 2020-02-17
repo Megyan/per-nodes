@@ -22,6 +22,9 @@ public static Unsafe getUnsafe() {
   }
 ```
 
+在JDK1.9之后此类已经开放使用了：
+java9中，Unsafe变成了jdk.internal.misc下的包，同时包含了一个静态方法，可以直接拿到theUnsafe对象。
+
 ### Unsafe CAS方法
 
 CAS是一些CPU直接支持的指令，也就是我们前面分析的无锁操作，在Java中无锁操作CAS基于以下3个方法实现，在稍后讲解Atomic系列内部方法是基于下述方法的实现的
@@ -52,7 +55,11 @@ public native void unpark(Object thread);
 
 
 ### Unsafe 内存屏障
+这部分包括了loadFence、storeFence、fullFence等方法。这是在Java 8新引入的，用于定义内存屏障，避免代码重排序。
+
+
 用于定义内存屏障，避免代码重排序，与Java内存模型相关
+[内存屏障](https://my.oschina.net/LucasZhu/blog/1537330)
 
 ## JUC中的原子操作类
 
@@ -64,6 +71,10 @@ public native void unpark(Object thread);
 * AtomicLong：原子更新长整型
 
 简单的描述,原子操作类的实现是死循环+CAS.
+
+AtomicInteger 中的CAS操作就是compareAndSet()，其作用是每次从内存中根据内存偏移量（valueOffset）取出数据，将取出的值跟expect 比较，如果数据一致就把内存中的值改为update。
+
+这样使用CAS就保证了原子操作。其余几个方法的原理跟这个相同，在此不再过多的解释。
 
 ### 原子更新引用
 
@@ -137,4 +148,6 @@ AtomicStampedReference原子类是一个带有时间戳的对象引用，在每�
 AtomicMarkableReference与AtomicStampedReference不同的是，AtomicMarkableReference维护的是一个boolean值的标识，也就是说至于true和false两种切换状态，经过博主测试，这种方式并不能完全防止ABA问题的发生，只能减少ABA问题发生的概率
 
 
+
+[深入解析Java AtomicInteger 原子类型](https://www.cnblogs.com/rever/p/8215743.html)
 
