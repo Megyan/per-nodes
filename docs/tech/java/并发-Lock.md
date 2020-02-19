@@ -1,12 +1,15 @@
 # 并发-Lock
+1.加锁 就是CAS改状态。
+2.再次尝试加锁。再次改状态失败后，加入同步队列 `在队列中的节点都进行自旋，判断自己是否是第一节点，`。
+3.加入队列的同时，每个node开始自旋，判断自己的状态和队列状态，发现自己不是第一顺位继承人，那么就挂起 `此时的挂起是unsafe.park 到操作系统层面`
+
 
 `Q1:Lock 基本过程(无需表述类的继承关系)`
 
 `Q2:公平锁和非公平锁实现的区别?`
+非公平锁在加锁的时候，直接CAS去改Lock的状态，但是公平锁先询问下队列是否为空，空的话，就加锁失败，加入队列。
 
 `Q3:锁释放 基本过程`
-
-Q4:
 
 ## Lock接口
 
@@ -71,7 +74,6 @@ public interface Lock {
 `AbstractQueuedSynchronizer又称为队列同步器(后面简称AQS)`
 
 **AQS工作基本原理**
-
 
 1.如何判断共享资源是否需要锁定
 AQS通过一个int类型的成员变量state来控制同步状态,当state=0时，则说明没有任何线程占有共享资源的
@@ -241,6 +243,8 @@ final boolean acquireQueued(final Node node, int arg) {
 ```
 
 5.自旋过程:判断自己的前驱是否时head,如果是且设置state成功,则将自身设置为head.
+> 如果前驱不是head，说明当前节点没有执行权。
+> 检查head是不是完事了，如果完事儿，唤醒可以干活的node。
   反之清除同步队列中位于自身前面的state=取消CANCEL的Node节点,并将自身的前驱设置为SIGNAL状态，
   等待被唤醒**(这就是shouldParkAfterFailedAcquire)**,同时挂起自身
   **parkAndCheckInterrupt**.
@@ -335,6 +339,7 @@ unsafe 这个类 需要了解
 `释放  唤醒第一个 让它自旋`
 
 ## 神奇的Condition
+过AQS中存在两种队列，一种是同步队列，一种是等待队列，而等待队列就相对于Condition而言的
 
 1.通过Condition能够精细的控制多线程的休眠与唤醒。
 
