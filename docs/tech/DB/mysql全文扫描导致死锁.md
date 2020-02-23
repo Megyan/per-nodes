@@ -80,5 +80,6 @@ MyISAM 存储引擎对两种索引的存储没有区别，InnoDb 存储引擎的
 
 
 
-[Reference]http://www.aneasystone.com/archives/2017/12/solving-dead-locks-three.html
-[Reference]http://hedengcheng.com/?p=771
+[Reference-主要参考材料]http://www.aneasystone.com/archives/2017/12/solving-dead-locks-three.html
+
+[Reference]https://github.com/hedengcheng/tech/blob/master/database/MySQL/MySQL%20%E5%8A%A0%E9%94%81%E5%A4%84%E7%90%86%E5%88%86%E6%9E%90.pdf
