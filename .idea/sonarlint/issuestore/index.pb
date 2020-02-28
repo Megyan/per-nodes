@@ -29,3 +29,9 @@ S
 #docs/tech/理论/consistent_hash.md,7/0/705464adc2f51cc0735a0ff57d9d9e61740e31e1
 [
 +docs/tech/数据结构/红黑树和B+树.md,5/f/5f3d0f0f29a2f0caa8203de209eb82c73fed9720
+Q
+!docs/tech/缓存/cache-pattern.md,d/4/d441a08ab685e1619e37ab49978be6b991386dee
+P
+ docs/tech/缓存/驾驭缓存.md,e/2/e21cd7cbb3030f29493f3bda8fefe755c00fe084
+V
+&docs/tech/缓存/缓存的进化史.md,c/3/c3796d401caac503f8cafcb19cc27ce5d5eb0283
