@@ -35,3 +35,5 @@ P
  docs/tech/缓存/驾驭缓存.md,e/2/e21cd7cbb3030f29493f3bda8fefe755c00fe084
 V
 &docs/tech/缓存/缓存的进化史.md,c/3/c3796d401caac503f8cafcb19cc27ce5d5eb0283
+X
+(docs/tech/elasticsearch/elasticsearch.md,1/b/1b2066ef10e229664a7b5face3620efae1a08365
