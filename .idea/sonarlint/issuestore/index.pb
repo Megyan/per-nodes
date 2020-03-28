@@ -37,3 +37,5 @@ V
 &docs/tech/缓存/缓存的进化史.md,c/3/c3796d401caac503f8cafcb19cc27ce5d5eb0283
 X
 (docs/tech/elasticsearch/elasticsearch.md,1/b/1b2066ef10e229664a7b5face3620efae1a08365
+M
+docs/tech/组件/Disruptor.md,1/e/1ed753e3c651938ea7a28a24523df77ca50ae7d1
